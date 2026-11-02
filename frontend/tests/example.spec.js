@@ -45,3 +45,33 @@ test('admin berhasil logout', async ({ page }) => {
 
   await expect(page).toHaveURL(/login/);
 });
+
+test('admin dapat berpindah ke semua menu utama', async ({ page }) => {
+  await page.goto('http://localhost:5173/login');
+
+  await page.getByPlaceholder('admin@company.com').fill('admin@company.com');
+  await page.getByPlaceholder('********').fill('admin123');
+
+  await page.getByRole('button', { name: 'Masuk' }).click();
+
+  await expect(page).toHaveURL('http://localhost:5173/');
+
+  await page.getByRole('link', { name: 'Karyawan' }).click();
+  await expect(page).toHaveURL(/employees/);
+
+  await page.getByRole('link', { name: 'Proses Payroll' }).click();
+  await expect(page).toHaveURL(/payroll/);
+
+  await page.getByRole('link', { name: 'Absensi Karyawan' }).click();
+  await expect(page).toHaveURL(/attendance/);
+
+  await page.getByRole('link', { name: 'Manajemen Cuti' }).click();
+  await expect(page).toHaveURL(/leave/);
+
+  await page.getByRole('link', { name: 'Laporan' }).click();
+  await expect(page).toHaveURL(/reports/);
+
+  await page.getByRole('link', { name: 'Dashboard' }).click();
+  await expect(page).toHaveURL('http://localhost:5173/');
+});
+

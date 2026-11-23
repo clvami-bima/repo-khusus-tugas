@@ -7,6 +7,7 @@ import PayrollRun from './pages/PayrollRun';
 import Reports from './pages/Reports';
 import Leave from './pages/Leave';
 import Attendance from './pages/Attendance';
+import MasterData from './pages/MasterData';
 import ProtectedRoute from './components/ProtectedRoute';
 
 export default function App() {
@@ -73,6 +74,15 @@ export default function App() {
         element={
           <ProtectedRoute>
             <Reports />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/master-data"
+        element={
+          <ProtectedRoute>
+            <MasterData />
           </ProtectedRoute>
         }
       />

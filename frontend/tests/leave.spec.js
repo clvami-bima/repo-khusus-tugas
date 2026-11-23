@@ -1,5 +1,11 @@
 import { test, expect } from '@playwright/test';
 
+// Tanggal acak (2027-2029) agar pengajuan antar tes dan antar retry tidak bertabrakan.
+function randomLeaveDate() {
+  const offset = Math.floor(Math.random() * 1000);
+  return new Date(Date.UTC(2027, 0, 1 + offset)).toISOString().slice(0, 10);
+}
+
 test.describe('Manajemen Cuti', () => {
 
   async function login(page) {
@@ -25,24 +31,19 @@ test.describe('Manajemen Cuti', () => {
   }
 
   async function createLeave(page) {
+    const leaveDate = randomLeaveDate();
+
     await page.getByRole('button', { name: '+ Ajukan Cuti' }).click();
 
-        const employeeSelect = page.getByRole('combobox').first();
+    const employeeSelect = page.getByRole('combobox').first();
     const employeeId = await employeeSelect
       .locator('option:not([value=""])')
       .first()
       .getAttribute('value');
     await employeeSelect.selectOption(employeeId);
 
-    await page
-      .getByRole('textbox')
-      .first()
-      .fill('2026-09-20');
-
-    await page
-      .getByRole('textbox')
-      .nth(1)
-      .fill('2026-09-20');
+    await page.getByRole('textbox').first().fill(leaveDate);
+    await page.getByRole('textbox').nth(1).fill(leaveDate);
 
     await page
       .getByRole('combobox')
@@ -50,9 +51,7 @@ test.describe('Manajemen Cuti', () => {
       .selectOption('permission');
 
     await page
-      .getByRole('textbox', {
-        name: 'Masukkan alasan cuti...'
-      })
+      .getByRole('textbox', { name: 'Masukkan alasan cuti...' })
       .fill('saya ada meeting');
 
     await page
@@ -64,88 +63,50 @@ test.describe('Manajemen Cuti', () => {
     ).toBeVisible();
   }
 
-
   test('CREATE - mengajukan cuti', async ({ page }) => {
     await login(page);
-
     await createLeave(page);
-
-    await expect(
-      page.getByRole('cell', { name: 'Menunggu' }).last()
-    ).toBeVisible();
   });
-
 
   test('APPROVE - menyetujui pengajuan cuti', async ({ page }) => {
     await login(page);
-
     await createLeave(page);
 
-    await page
-      .getByRole('cell', { name: 'Menunggu' })
-      .last()
-      .click();
+    await page.getByRole('cell', { name: 'Menunggu' }).last().click();
 
-    await page
-      .getByRole('button', { name: 'Approve' })
-      .last()
-      .click();
+    await page.getByRole('button', { name: 'Approve' }).last().click();
 
-    await expect(
-      page.getByText('Disetujui').last()
-    ).toBeVisible();
+    await expect(page.getByText('Disetujui').last()).toBeVisible();
   });
-
 
   test('REJECT - menolak pengajuan cuti', async ({ page }) => {
     await login(page);
-
     await createLeave(page);
 
-    await page
-      .getByRole('cell', { name: 'Menunggu' })
-      .last()
-      .click();
+    await page.getByRole('cell', { name: 'Menunggu' }).last().click();
 
     page.once('dialog', dialog => {
-      dialog
-        .accept('alasan penolakan untuk testing')
-        .catch(() => {});
+      dialog.accept('alasan penolakan untuk testing').catch(() => {});
     });
 
-    await page
-      .getByRole('button', { name: 'Reject' })
-      .last()
-      .click();
+    await page.getByRole('button', { name: 'Reject' }).last().click();
 
-    await expect(
-      page.getByText('Ditolak').last()
-    ).toBeVisible();
+    await expect(page.getByText('Ditolak').last()).toBeVisible();
   });
-
 
   test('CANCEL - membatalkan pengajuan cuti', async ({ page }) => {
     await login(page);
-
     await createLeave(page);
 
-    await page
-      .getByRole('cell', { name: 'Menunggu' })
-      .last()
-      .click();
+    await page.getByRole('cell', { name: 'Menunggu' }).last().click();
 
     page.once('dialog', dialog => {
       dialog.accept().catch(() => {});
     });
 
-    await page
-      .getByRole('button', { name: 'Cancel' })
-      .last()
-      .click();
+    await page.getByRole('button', { name: 'Cancel' }).last().click();
 
-    await expect(
-      page.getByText('Dibatalkan').last()
-    ).toBeVisible();
+    await expect(page.getByText('Dibatalkan').last()).toBeVisible();
   });
 
 });

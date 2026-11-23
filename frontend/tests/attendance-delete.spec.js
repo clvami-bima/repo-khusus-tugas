@@ -1,6 +1,10 @@
 import { test, expect } from '@playwright/test';
+import { createAttendanceRows } from './helpers.js';
 
-test('delete attendance', async ({ page }) => {
+test('delete attendance', async ({ page, request }) => {
+  // Dua baris: setelah satu dihapus, tombol Hapus masih harus ada.
+  await createAttendanceRows(request, 2);
+
   await page.goto('http://localhost:5173/login');
 
   await page.getByRole('textbox', { name: 'admin@company.com' }).fill('admin@company.com');

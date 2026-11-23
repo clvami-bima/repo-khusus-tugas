@@ -32,7 +32,12 @@ test('admin dapat menambah absensi karyawan', async ({ page }) => {
     .click();
 
   // Pilih karyawan
-  await page.getByRole('combobox').nth(2).selectOption('12');
+   const employeeSelect = page.getByRole('combobox').nth(2);
+  const employeeId = await employeeSelect
+    .locator('option:not([value=""])')
+    .first()
+    .getAttribute('value');
+  await employeeSelect.selectOption(employeeId);
 
   // Isi waktu masuk
   await page

@@ -56,7 +56,7 @@ test('admin dapat berpindah ke semua menu utama', async ({ page }) => {
 
   await expect(page).toHaveURL('http://localhost:5173/');
 
-  await page.getByRole('link', { name: 'Karyawan' }).click();
+  await page.getByRole('link', { name: 'Karyawan', exact: true }).click();
   await expect(page).toHaveURL(/employees/);
 
   await page.getByRole('link', { name: 'Proses Payroll' }).click();

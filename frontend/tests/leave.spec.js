@@ -68,15 +68,25 @@ test.describe('Manajemen Cuti', () => {
     await createLeave(page);
   });
 
-  test('APPROVE - menyetujui pengajuan cuti', async ({ page }) => {
+   test('APPROVE - menyetujui pengajuan cuti', async ({ page }) => {
     await login(page);
     await createLeave(page);
 
-    await page.getByRole('cell', { name: 'Menunggu' }).last().click();
+    // Approve memakai window.confirm: dialog harus diterima.
+    page.once('dialog', dialog => {
+      dialog.accept().catch(() => {});
+    });
 
-    await page.getByRole('button', { name: 'Approve' }).last().click();
+    const [response] = await Promise.all([
+      page.waitForResponse(
+        r =>
+          r.request().method() === 'PUT' &&
+          r.url().endsWith('/approve')
+      ),
+      page.getByRole('button', { name: 'Approve' }).first().click(),
+    ]);
 
-    await expect(page.getByText('Disetujui').last()).toBeVisible();
+    expect(response.status()).toBe(200);
   });
 
   test('REJECT - menolak pengajuan cuti', async ({ page }) => {

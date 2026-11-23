@@ -134,7 +134,7 @@ export default function PayrollRun() {
                 >
                   <span>{MONTHS[p.month - 1]} {p.year}</span>
                   <span className={`text-xs px-2 py-0.5 rounded-full ${selectedPeriod?.id === p.id ? 'bg-white/20' : 'bg-slate-100'}`}>
-                    {p.status === 'processed' ? 'Diproses' : 'Draft'}
+                    {['completed', 'processed'].includes(p.status) ? 'Diproses' : 'Draft'}
                   </span>
                 </button>
               ))}

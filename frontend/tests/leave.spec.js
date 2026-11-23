@@ -27,10 +27,12 @@ test.describe('Manajemen Cuti', () => {
   async function createLeave(page) {
     await page.getByRole('button', { name: '+ Ajukan Cuti' }).click();
 
-    await page
-      .getByRole('combobox')
+        const employeeSelect = page.getByRole('combobox').first();
+    const employeeId = await employeeSelect
+      .locator('option:not([value=""])')
       .first()
-      .selectOption('24');
+      .getAttribute('value');
+    await employeeSelect.selectOption(employeeId);
 
     await page
       .getByRole('textbox')

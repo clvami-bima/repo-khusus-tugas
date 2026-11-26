@@ -1,0 +1,248 @@
+// =========================================================
+// Skema Prisma - Payroll Admin (PostgreSQL)
+//
+// Nama kolom dipertahankan snake_case agar bentuk JSON API
+// identik dengan versi sebelumnya. CHECK constraint
+// (mis. status, contract_type) tetap dijaga di level database
+// melalui prisma/migrations/0_init/migration.sql.
+// =========================================================
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            Int      @id @default(autoincrement())
+  name          String   @db.VarChar(150)
+  email         String   @unique @db.VarChar(150)
+  password_hash String
+  role          String   @default("admin") @db.VarChar(20)
+  created_at    DateTime @default(now()) @db.Timestamp(6)
+
+  approved_leaves LeaveRequest[]
+
+  @@map("users")
+}
+
+model Department {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique @db.VarChar(100)
+  description String?
+  status      String   @default("active") @db.VarChar(20)
+  created_at  DateTime @default(now()) @db.Timestamp(6)
+  updated_at  DateTime @default(now()) @updatedAt @db.Timestamp(6)
+
+  employees Employee[]
+  history   EmploymentHistory[]
+
+  @@map("departments")
+}
+
+model Position {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique @db.VarChar(100)
+  description String?
+  status      String   @default("active") @db.VarChar(20)
+  created_at  DateTime @default(now()) @db.Timestamp(6)
+  updated_at  DateTime @default(now()) @updatedAt @db.Timestamp(6)
+
+  employees Employee[]
+  history   EmploymentHistory[]
+
+  @@map("positions")
+}
+
+model Employee {
+  id            Int      @id @default(autoincrement())
+  employee_code String   @unique @db.VarChar(30)
+  name          String   @db.VarChar(150)
+  email         String   @unique @db.VarChar(150)
+  position      String?  @db.VarChar(100)
+  department    String?  @db.VarChar(100)
+  join_date     DateTime @db.Date
+  base_salary   Decimal  @default(0) @db.Decimal(14, 2)
+  bank_account  String?  @db.VarChar(50)
+  status        String   @default("active") @db.VarChar(20)
+  created_at    DateTime @default(now()) @db.Timestamp(6)
+  updated_at    DateTime @default(now()) @updatedAt @db.Timestamp(6)
+  department_id Int?
+  position_id   Int?
+
+  department_rel Department? @relation(fields: [department_id], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "fk_employees_department")
+  position_rel   Position?   @relation(fields: [position_id], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "fk_employees_position")
+
+  salary_components SalaryComponent[]
+  payroll_runs      PayrollRun[]
+  contracts         EmploymentContract[]
+  history           EmploymentHistory[]
+  attendance        Attendance[]
+  leave_requests    LeaveRequest[]
+  leave_balances    EmployeeLeaveBalance[]
+
+  @@index([department], map: "idx_employees_department")
+  @@index([status], map: "idx_employees_status")
+  @@index([department_id], map: "idx_employees_department_id")
+  @@index([position_id], map: "idx_employees_position_id")
+  @@map("employees")
+}
+
+model SalaryComponent {
+  id            Int      @id @default(autoincrement())
+  employee_id   Int
+  type          String   @db.VarChar(20)
+  name          String   @db.VarChar(100)
+  amount        Decimal  @default(0) @db.Decimal(14, 2)
+  is_percentage Boolean  @default(false)
+  created_at    DateTime @default(now()) @db.Timestamp(6)
+  category      String?  @default("allowance") @db.VarChar(30)
+
+  employee Employee @relation(fields: [employee_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([employee_id], map: "idx_salary_components_employee")
+  @@index([category], map: "idx_salary_components_category")
+  @@map("salary_components")
+}
+
+model PayrollPeriod {
+  id         Int      @id @default(autoincrement())
+  month      Int
+  year       Int
+  status     String   @default("draft") @db.VarChar(20)
+  created_at DateTime @default(now()) @db.Timestamp(6)
+
+  runs PayrollRun[]
+
+  @@unique([month, year])
+  @@map("payroll_periods")
+}
+
+model PayrollRun {
+  id                  Int      @id @default(autoincrement())
+  period_id           Int
+  employee_id         Int
+  base_salary         Decimal  @db.Decimal(14, 2)
+  total_allowance     Decimal  @default(0) @db.Decimal(14, 2)
+  total_deduction     Decimal  @default(0) @db.Decimal(14, 2)
+  gross_salary        Decimal  @db.Decimal(14, 2)
+  net_salary          Decimal  @db.Decimal(14, 2)
+  component_breakdown Json?
+  generated_at        DateTime @default(now()) @db.Timestamp(6)
+  total_bonus         Decimal  @default(0) @db.Decimal(14, 2)
+  total_tax           Decimal  @default(0) @db.Decimal(14, 2)
+  total_bpjs          Decimal  @default(0) @db.Decimal(14, 2)
+
+  period   PayrollPeriod @relation(fields: [period_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  employee Employee      @relation(fields: [employee_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([period_id, employee_id])
+  @@index([period_id], map: "idx_payroll_runs_period")
+  @@index([employee_id], map: "idx_payroll_runs_employee")
+  @@map("payroll_runs")
+}
+
+model EmploymentContract {
+  id            Int       @id @default(autoincrement())
+  employee_id   Int
+  contract_type String    @db.VarChar(30)
+  start_date    DateTime  @db.Date
+  end_date      DateTime? @db.Date
+  status        String    @default("active") @db.VarChar(20)
+  notes         String?
+  created_at    DateTime  @default(now()) @db.Timestamp(6)
+  updated_at    DateTime  @default(now()) @updatedAt @db.Timestamp(6)
+
+  employee Employee @relation(fields: [employee_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([employee_id], map: "idx_employment_contracts_employee")
+  @@index([status], map: "idx_employment_contracts_status")
+  @@map("employment_contracts")
+}
+
+model EmploymentHistory {
+  id            Int       @id @default(autoincrement())
+  employee_id   Int
+  position_id   Int?
+  department_id Int?
+  start_date    DateTime  @db.Date
+  end_date      DateTime? @db.Date
+  notes         String?
+  created_at    DateTime  @default(now()) @db.Timestamp(6)
+
+  employee       Employee    @relation(fields: [employee_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  position_rel   Position?   @relation(fields: [position_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  department_rel Department? @relation(fields: [department_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@index([employee_id], map: "idx_employment_history_employee")
+  @@index([department_id], map: "idx_employment_history_department")
+  @@index([position_id], map: "idx_employment_history_position")
+  @@map("employment_history")
+}
+
+model Attendance {
+  id               Int       @id @default(autoincrement())
+  employee_id      Int
+  attendance_date  DateTime  @db.Date
+  check_in         DateTime? @db.Timestamp(6)
+  check_out        DateTime? @db.Timestamp(6)
+  late_minutes     Int       @default(0)
+  overtime_minutes Int       @default(0)
+  status           String    @default("present") @db.VarChar(20)
+  notes            String?
+  created_at       DateTime  @default(now()) @db.Timestamp(6)
+  updated_at       DateTime  @default(now()) @updatedAt @db.Timestamp(6)
+
+  employee Employee @relation(fields: [employee_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([employee_id, attendance_date])
+  @@index([employee_id], map: "idx_attendance_employee")
+  @@index([attendance_date], map: "idx_attendance_date")
+  @@index([employee_id, attendance_date], map: "idx_attendance_employee_date")
+  @@index([status], map: "idx_attendance_status")
+  @@map("attendance")
+}
+
+model LeaveRequest {
+  id               Int       @id @default(autoincrement())
+  employee_id      Int
+  leave_type       String    @db.VarChar(30)
+  start_date       DateTime  @db.Date
+  end_date         DateTime  @db.Date
+  total_days       Int
+  reason           String?
+  status           String    @default("pending") @db.VarChar(20)
+  approved_by      Int?
+  approved_at      DateTime? @db.Timestamp(6)
+  rejection_reason String?
+  created_at       DateTime  @default(now()) @db.Timestamp(6)
+  updated_at       DateTime  @default(now()) @updatedAt @db.Timestamp(6)
+
+  employee Employee @relation(fields: [employee_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  approver User?    @relation(fields: [approved_by], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@index([employee_id], map: "idx_leave_requests_employee")
+  @@index([status], map: "idx_leave_requests_status")
+  @@index([start_date, end_date], map: "idx_leave_requests_dates")
+  @@map("leave_requests")
+}
+
+model EmployeeLeaveBalance {
+  id           Int      @id @default(autoincrement())
+  employee_id  Int
+  year         Int
+  annual_quota Int      @default(12)
+  annual_used  Int      @default(0)
+  created_at   DateTime @default(now()) @db.Timestamp(6)
+  updated_at   DateTime @default(now()) @updatedAt @db.Timestamp(6)
+
+  employee Employee @relation(fields: [employee_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([employee_id, year])
+  @@index([employee_id, year], map: "idx_leave_balances_employee_year")
+  @@map("employee_leave_balances")
+}

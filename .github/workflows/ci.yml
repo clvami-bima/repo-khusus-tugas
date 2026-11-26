@@ -37,7 +37,8 @@ jobs:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/payroll_db
       JWT_SECRET: ci_test_secret
       JWT_EXPIRES_IN: 8h
-      FRONTEND_URL: http://127.0.0.1:5173
+      
+      FRONTEND_URL: http://localhost:5173
 
     steps:
       - name: Checkout repository
